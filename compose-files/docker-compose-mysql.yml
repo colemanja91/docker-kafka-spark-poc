@@ -1,0 +1,47 @@
+version: '2'
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_CREATE_TOPICS: "test-topic:1:1"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  mysql:
+    image: mysql
+    container_name: mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: "adminpwd"
+      MYSQL_USER: "localuser"
+      MYSQL_PASSWORD: "localpwd"
+      MYSQL_DATABASE: "localdb"
+    volumes:
+      - /data/kafka-poc/mysql:/var/lib/mysql
+  zeppelin:
+    image: apache/zeppelin:0.7.2
+    ports:
+      - "8080:8080"
+    links:
+      - kafka:kafka
+      - mysql:mysql
+    depends_on:
+      - kafka
+      - mysql
+    environment:
+      ZEPPELIN_LOG_DIR: /logs
+      ZEPPELIN_NOTEBOOK_DIR: /notebook
+    volumes:
+      - /tmp/logs:/logs
+      - /data/kafka-poc/zeppelin/notebook:/notebook
+      - /data/kafka-poc/zeppelin/conf:/zeppelin/conf
+      - /data/kafka-poc/kafka-data:/data/kafka-poc/kafka-data
